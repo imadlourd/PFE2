@@ -1,60 +1,37 @@
-const express = require("express")
-const app = express()
-const _PORT = process.env.PORT;
-const cors = require("cors")
-app.use(cors())
-app.use(express.json())
+import express from 'express';
+import cors from 'cors';
+import mongoose from 'mongoose';
+import dotenv from 'dotenv';
+import userRoutes from './routes/userRoutes.js';
+import challangeRoutes from './routes/challangeRoutes.js'
 
-const bcrypt = require('bcrypt');
-const jwt = require('jsonwebtoken');
+import cookieParser from 'cookie-parser';
 
-// CONNECT TO DB
-const   username = process.env.USERNAME,
-        password = process.env.PASSWORD,
-        database = process.env.DB;
+dotenv.config();
+const app = express();
+const port = process.env.PORT || 5000;
+app.use(cookieParser());
+app.use(express.json());
+app.use(cors({
+  credentials: true,
+  origin: 'http://localhost:3000',
+  
+}));
+mongoose.connect(process.env.ATALS_URI, {});
 
-const mongoose = require("mongoose")
-mongoose.connect("mongodb+srv://anourbelabbes:rD1ImvszAnCJPms8@cluster0.p9o7h7f.mongodb.net/BookTracker?retryWrites=true&w=majority")
-
-// USER MODEL
-const UserModel = require('./models/Users')
-
-// get request
-app.get("/users", async (req, res)=>{
-    const users = await UserModel.find();
-    res.json(users)
-})
-
-// create user
-app.post("/createUser", async (req, res) => {
-    const newUser = new UserModel(req.body);
-    await newUser.save();
-    res.json(req.body)
-})
-
-// login
-app.post("/login", async (req, res) => {
-    const { email, password } = req.body;
-
-    // find user by email
-    const user = await UserModel.findOne({ email , password });
-
-    if (!user) {
-        return res.status(400).json({ message: "Invalid email or password" });
-    }
-
-    // check password
-    const isPasswordMatch = await user.comparePassword(password);
-    if (!isPasswordMatch) {
-        return res.status(400).json({ message: "Invalid email or password" });
-    }
-
-    // generate JWT token
-    const token = jwt.sign({ email }, process.env.JWT_SECRET);
-
-    res.json({ message: "Login successful", token });
+const connection = mongoose.connection;
+connection.once('open', () => {
+  console.log('MongoDB database connection established successfully');
 });
 
-app.listen("3001", ()=>{
-    console.log("Server Works !!")
-})
+app.use('/', userRoutes);
+app.use('/',challangeRoutes);
+
+
+
+
+app.listen(port, () => {
+  console.log(`Server running on port ${port}`);
+});
+
+
